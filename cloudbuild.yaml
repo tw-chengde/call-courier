@@ -1,0 +1,34 @@
+# push 到 GitHub main 分支時，由 Cloud Build 觸發條件自動執行：
+# 建置映像 → 推到 Artifact Registry → 建立或更新 Cloud Run Job
+substitutions:
+  _REGION: asia-east1
+  _JOB: call-courier
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_JOB}/${_JOB}:$SHORT_SHA", "."]
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_JOB}/${_JOB}:$SHORT_SHA"]
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - deploy
+      - ${_JOB}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_JOB}/${_JOB}:$SHORT_SHA
+      - --region=${_REGION}
+      - --service-account=courier-bot@$PROJECT_ID.iam.gserviceaccount.com
+      - --set-secrets=MEMBER_USERNAME=member-username:latest,MEMBER_PASSWORD=member-password:latest
+      - --memory=2Gi
+      - --cpu=1
+      - --task-timeout=300s
+      - --max-retries=1
+
+options:
+  logging: CLOUD_LOGGING_ONLY

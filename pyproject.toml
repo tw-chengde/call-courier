@@ -1,0 +1,7 @@
+[project]
+name = "call-courier"
+version = "0.1.0"
+description = "便利帶會員專網：週間自動呼叫快遞"
+requires-python = ">=3.14"
+# 版本需與 Dockerfile 的 Playwright 映像一致
+dependencies = ["playwright==1.64.0"]
